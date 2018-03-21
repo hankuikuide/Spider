@@ -1,7 +1,9 @@
 const rp = require("request-promise"), //request-promise模块
-      fs = require("fs"), //fs模块
-      cheerio = require("cheerio"), //进入cheerio模块 cheerio是一个node的库，可以理解为一个Node.js版本的jquery，用来从网页中以 css selector取数据，使用方式和jquery基本相同
-      localPath = "images/"; //存放照片的地址
+    url = require('url'),
+    fs = require("fs"), //fs模块
+    cheerio = require("cheerio"), //进入cheerio模块 cheerio是一个node的库，可以理解为一个Node.js版本的jquery，用来从网页中以 css selector取数据，使用方式和jquery基本相同
+    iconv = require('iconv-lite'),
+    localPath = "images/"; //存放照片的地址
 
 let folderPath; //图片本地文件夹地址
 
@@ -10,7 +12,10 @@ module.exports = {
         const page = {
             url: url,
             document: await rp({
-                url: url
+                url: url,
+                encoding: null
+            }).then((body) => {
+                return iconv.decode(body, 'gb2312');
             })
         };
         return page;
@@ -18,7 +23,7 @@ module.exports = {
     getImages(page) { //根据页面信息，取得子链接放入数组
         let images = [];
         const $ = cheerio.load(page.document); //将html转换为可操作的节点
-        $("#pins li a")
+        $(".main dd a")
             .children()
             .each(async (i, e) => {
                 let img = {
@@ -43,32 +48,24 @@ module.exports = {
     getImageNum(page, name) {
         if (page) {
             let $ = cheerio.load(page);
-            let len = $(".pagenavi")
-            .find("a")
-            .find("span").length;
-            if (len == 0) {
-                fs.rmdirSync(`${localPath}${name}`);//删除无法下载的文件夹
-                return 0;
-            }
-            let pageIndex = $(".pagenavi")
-            .find("a")
-            .find("span")[len - 2].children[0].data;
-            
-            return pageIndex;//返回图片总数
+
+            let nodeValue = $('.content-page span.page-ch')[0].children[0].data;
+            let num = nodeValue.substr(1, nodeValue.length - 2);
+
+            return num;//返回图片总数
         }
     },
     //下载相册照片
     async downloadImage(page, index) {
         if (page.document) {
             var $ = cheerio.load(page.document);
-            if ($(".main-image").find("img")[0]) {
-                let imgSrc = $(".main-image").find("img")[0].attribs.src;//图片地址
+            if ($(".content-pic").find("img")[0]) {
+                let imgSrc = $(".content-pic").find("img")[0].attribs.src;//图片地址
                 let headers = {
                     Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
                     "Accept-Encoding": "gzip, deflate",
                     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
                     "Cache-Control": "no-cache",
-                    Host: "i.meizitu.net",
                     Pragma: "no-cache",
                     "Proxy-Connection": "keep-alive",
                     Referer: page.url,

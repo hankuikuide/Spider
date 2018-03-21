@@ -1,5 +1,5 @@
 const spider = require('./spider');
-const target = 'http://www.mzitu.com/';
+const target = 'http://www.mm131.com/xinggan/';
 
 let start = 1;
 let end = 10;
@@ -22,19 +22,24 @@ const downloadImages = async (images, index) => {
         return false;
     }
     if (spider.makeDir(images[index])) {
-        let item = await spider.getPage(images[index].url);
+        let url = images[index].url;
+        let item = await spider.getPage(url);
         let imageNum = spider.getImageNum(item.document, images[index].name);
 
         for (var i = 1; i <= imageNum; i++) {
-            let page = await spider.getPage(images[index].url + `/${i}`);
+            let url = images[index].url;
+            if (i !== 1) {
+                url = images[index].url.substr(0, images[index].url.length - 5) + `_${i}.html`
+            }
+            let page = await spider.getPage(url);
             await spider.downloadImage(page, i);
         }
         index++;
         downloadImages(images, index);
-    } else{
+    } else {
         index++;
         downloadImages(images, index);
     }
 };
 
-main(target + start);
+main(target);
